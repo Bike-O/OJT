@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026新卒 OJT進捗ダッシュボード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0f1117;
+    --surface:  #181c25;
+    --surface2: #1e2330;
+    --border:   rgba(255,255,255,0.07);
+    --text:     #e8eaf0;
+    --muted:    #6b7280;
+    --done:     #4ade80;
+    --doing:    #fbbf24;
+    --todo:     #f87171;
+    --accent:   #6366f1;
+    --cat1: #818cf8;
+    --cat2: #34d399;
+    --cat3: #60a5fa;
+    --cat4: #f472b6;
+    --cat5: #fb923c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 32px 24px 64px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  .page-subtitle {
+    font-size: 15px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .updated {
+    font-size: 14px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi-card.k-total::before { background: var(--accent); }
+  .kpi-card.k-done::before  { background: var(--done); }
+  .kpi-card.k-avg::before   { background: var(--doing); }
+  .kpi-card.k-top::before   { background: var(--cat1); }
+
+  .kpi-label {
+    font-size: 13px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-size: 36px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .kpi-sub {
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+  }
+
+  .chart-card.full { grid-column: 1 / -1; }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .legend-row {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .leg-sq {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  .member-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .member-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    transition: border-color 0.2s;
+    cursor: default;
+  }
+
+  .member-card:hover { border-color: rgba(99,102,241,0.4); }
+
+  .member-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #fff;
+    margin-bottom: 2px;
+  }
+
+  .member-store {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .pct-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .pct-value {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #fff;
+  }
+
+  .pct-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .prog-bar {
+    height: 5px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 10px;
+  }
+
+  .prog-done  { background: var(--done); }
+  .prog-doing { background: var(--doing); }
+  .prog-todo  { background: var(--todo); }
+
+  .mini-counts {
+    display: flex;
+    gap: 10px;
+    font-size: 13px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .c-done  { color: var(--done); }
+  .c-doing { color: var(--doing); }
+  .c-todo  { color: var(--todo); }
+
+  .check-divider {
+    border-top: 1px solid var(--border);
+    margin: 10px 0 8px;
+  }
+
+  .check-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .check-label {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .check-val {
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .check-warn {
+    font-size: 12px;
+    color: var(--todo);
+    margin-bottom: 4px;
+  }
+
+  .check-ok {
+    font-size: 12px;
+    color: var(--done);
+    margin-bottom: 4px;
+  }
+
+
+
+  .footer {
+    margin-top: 48px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <div class="page-title">2026新卒 OJT進捗ダッシュボード</div>
+    <div class="page-subtitle">バイク王 買取部門 ｜ 全31タスク基準（Notionエクスポートデータ）</div>
+  </div>
+  <div class="updated">更新: 2026年5月6日</div>
+</div>
+
+<div class="kpi-row">
+  <div class="kpi-card k-total">
+    <div class="kpi-label">対象人数</div>
+    <div class="kpi-value">8<span style="font-size:18px;color:var(--muted);font-weight:400;"> 名</span></div>
+    <div class="kpi-sub">8店舗 5グループ</div>
+  </div>
+  <div class="kpi-card k-done">
+    <div class="kpi-label">1人あたりタスク数</div>
+    <div class="kpi-value">31<span style="font-size:18px;color:var(--muted);font-weight:400;"> 件</span></div>
+    <div class="kpi-sub">全員共通タスクセット</div>
+  </div>
+  <div class="kpi-card k-avg">
+    <div class="kpi-label">平均完了率</div>
+    <div class="kpi-value">30<span style="font-size:18px;color:var(--muted);font-weight:400;">%</span></div>
+    <div class="kpi-sub">平均完了 9.5件 / 31件</div>
+  </div>
+  <div class="kpi-card k-top">
+    <div class="kpi-label">最高完了率</div>
+    <div class="kpi-value">45<span style="font-size:18px;color:var(--muted);font-weight:400;">%</span></div>
+    <div class="kpi-sub">松本愛哉（伊丹店）</div>
+  </div>
+</div>
+
+<div class="member-grid" id="memberGrid"></div>
+
+<div class="grid-2">
+  <div class="chart-card full">
+    <div class="card-title">コーチャーチェック済状況（完了タスク中）</div>
+    <div class="card-desc">完了タスクのうち、確認者によるチェックが入っている件数</div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-sq" style="background:var(--done)"></div>チェック済</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--todo)"></div>未チェック</div>
+    </div>
+    <div class="chart-wrap" style="height:240px;">
+      <canvas id="chart4"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card full">
+    <div class="card-title">個人別 進捗内訳（完了率順）</div>
+    <div class="card-desc">全31タスクに対する完了・対応中・未着手の内訳</div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-sq" style="background:var(--done)"></div>完了</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--doing)"></div>対応中</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--todo)"></div>未着手</div>
+    </div>
+    <div class="chart-wrap" style="height:280px;">
+      <canvas id="chart1"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="card-title">業務カテゴリ別 完了件数</div>
+    <div class="card-desc">カテゴリ別の進捗を個人ごとに比較</div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-sq" style="background:var(--cat1)"></div>準備(5)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--cat2)"></div>基本業務(10)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--cat3)"></div>運転業務(6)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--cat4)"></div>商談スキル(8)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--cat5)"></div>実践(2)</div>
+    </div>
+    <div class="chart-wrap" style="height:280px;">
+      <canvas id="chart2"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="card-title">カテゴリ別 全員合計進捗</div>
+    <div class="card-desc">カテゴリごとの課題構造を把握（全員合計）</div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-sq" style="background:var(--done)"></div>完了</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--doing)"></div>対応中</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--todo)"></div>未着手</div>
+    </div>
+    <div class="chart-wrap" style="height:280px;">
+      <canvas id="chart3"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>データソース: Notion CSVエクスポート（2026年5月6日時点）</span>
+  <span>バイク王 買取部門 OJT管理システム</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const members = [
+  {"name":"松本 愛哉","store":"伊丹店","group":"近畿第二G","done":14,"doing":4,"todo":13,"total":31,"checked":14,"checkers":"t.nakatani"},
+  {"name":"忽那 航太","store":"草加店","group":"関東第三G","done":11,"doing":13,"todo":7,"total":31,"checked":10,"checkers":"𠮷田智也・末田真也"},
+  {"name":"山田 泰大","store":"福岡店","group":"九州G","done":11,"doing":14,"todo":6,"total":31,"checked":8,"checkers":"岡﨑遼"},
+  {"name":"鶴田 京士朗","store":"姫路店","group":"近畿第二G","done":11,"doing":16,"todo":4,"total":31,"checked":11,"checkers":"玉木学"},
+  {"name":"黒坂 悠貴","store":"八王子堀之内店","group":"関東第五G","done":8,"doing":13,"todo":10,"total":31,"checked":8,"checkers":"末田真也・望月友哉"},
+  {"name":"児島 翔太","store":"寝屋川店","group":"近畿第二G","done":8,"doing":11,"todo":12,"total":31,"checked":8,"checkers":"辻本泰樹"},
+  {"name":"難波 杏介","store":"世田谷本店","group":"関東第五G","done":7,"doing":11,"todo":13,"total":31,"checked":6,"checkers":"福留悠太"},
+  {"name":"西川 智裕","store":"相模大野店","group":"関東第四G","done":6,"doing":3,"todo":22,"total":31,"checked":6,"checkers":"小林幸太・新井亮"}
+];
+
+const catData = {
+  "準備":      {"松本":[4,1,0],"忽那":[4,1,0],"山田":[4,1,0],"鶴田":[5,0,0],"黒坂":[4,1,0],"児島":[4,1,0],"難波":[5,0,0],"西川":[4,0,1]},
+  "基本業務":  {"松本":[3,3,4],"忽那":[6,1,3],"山田":[6,3,1],"鶴田":[4,5,1],"黒坂":[3,6,1],"児島":[2,5,3],"難波":[2,6,2],"西川":[2,2,6]},
+  "運転業務":  {"松本":[0,0,6],"忽那":[1,2,3],"山田":[1,3,2],"鶴田":[1,2,3],"黒坂":[1,3,2],"児島":[2,3,1],"難波":[0,1,5],"西川":[0,1,5]},
+  "商談スキル":{"松本":[7,0,1],"忽那":[0,8,0],"山田":[0,7,1],"鶴田":[1,7,0],"黒坂":[0,3,5],"児島":[0,1,7],"難波":[0,4,4],"西川":[0,0,8]},
+  "実践":      {"松本":[0,0,2],"忽那":[0,1,1],"山田":[0,0,2],"鶴田":[0,2,0],"黒坂":[0,0,2],"児島":[0,1,1],"難波":[0,0,2],"西川":[0,0,2]}
+};
+
+const shortNames = ["松本","忽那","山田","鶴田","黒坂","児島","難波","西川"];
+
+// メンバーカード
+const grid = document.getElementById('memberGrid');
+members.forEach(m => {
+  const pct = Math.round(m.done / m.total * 100);
+  const donePct = (m.done / m.total * 100).toFixed(1);
+  const doingPct = (m.doing / m.total * 100).toFixed(1);
+  const todoPct = (m.todo / m.total * 100).toFixed(1);
+  const uncheckCount = m.done - m.checked;
+  const checkPct = m.done > 0 ? Math.round(m.checked / m.done * 100) : 0;
+  const checkColor = checkPct === 100 ? 'var(--done)' : uncheckCount > 0 ? 'var(--todo)' : 'var(--doing)';
+  grid.innerHTML += `
+    <div class="member-card">
+      <div class="member-name">${m.name}</div>
+      <div class="member-store">${m.group} ／ ${m.store}</div>
+      <div class="pct-row">
+        <div class="pct-value">${pct}<span style="font-size:16px;color:var(--muted);font-weight:400;">%</span></div>
+        <div class="pct-label">完了率</div>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-done"  style="width:${donePct}%"></div>
+        <div class="prog-doing" style="width:${doingPct}%"></div>
+        <div class="prog-todo"  style="width:${todoPct}%"></div>
+      </div>
+      <div class="mini-counts">
+        <span class="c-done">完${m.done}</span>
+        <span class="c-doing">中${m.doing}</span>
+        <span class="c-todo">未${m.todo}</span>
+      </div>
+      <div class="check-divider"></div>
+      <div class="check-row">
+        <div class="check-label">コーチャーチェック</div>
+        <div class="check-val" style="color:${checkColor}">${m.checked} / ${m.done}件</div>
+      </div>
+      ${uncheckCount > 0 ? `<div class="check-warn">未チェック ${uncheckCount}件あり</div>` : `<div class="check-ok">全完了タスクチェック済</div>`}
+    </div>`;
+});
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } }
+};
+
+// Chart1: 横棒積み上げ
+new Chart(document.getElementById('chart1'), {
+  type: 'bar',
+  data: {
+    labels: members.map(m => m.name),
+    datasets: [
+      { label: '完了',   data: members.map(m => m.done),  backgroundColor: '#4ade80' },
+      { label: '対応中', data: members.map(m => m.doing), backgroundColor: '#fbbf24' },
+      { label: '未着手', data: members.map(m => m.todo),  backgroundColor: '#f87171' },
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    indexAxis: 'y',
+    scales: {
+      x: { stacked: true, max: 31, ticks: { color: '#6b7280', stepSize: 5 }, grid: { color: 'rgba(255,255,255,0.05)' }, border: { color: 'transparent' } },
+      y: { stacked: true, ticks: { color: '#e8eaf0', font: { size: 14, family: 'DM Sans' } }, grid: { display: false }, border: { color: 'transparent' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1e2330',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        titleColor: '#fff',
+        bodyColor: '#9ca3af',
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}件`,
+          afterBody: items => {
+            const m = members[items[0].dataIndex];
+            return [`完了率: ${Math.round(m.done/31*100)}%`];
+          }
+        }
+      }
+    }
+  }
+});
+
+// Chart2: カテゴリ別完了件数
+const cats = Object.keys(catData);
+const catColors = ['#818cf8','#34d399','#60a5fa','#f472b6','#fb923c'];
+new Chart(document.getElementById('chart2'), {
+  type: 'bar',
+  data: {
+    labels: shortNames,
+    datasets: cats.map((cat, i) => ({
+      label: cat,
+      data: shortNames.map(s => catData[cat][s][0]),
+      backgroundColor: catColors[i],
+      borderRadius: 3,
+      borderSkipped: false,
+    }))
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      x: { ticks: { color: '#e8eaf0', font: { size: 14 } }, grid: { display: false }, border: { color: 'transparent' } },
+      y: { max: 10, ticks: { stepSize: 2, color: '#6b7280', font: { size: 13 } }, grid: { color: 'rgba(255,255,255,0.05)' }, border: { color: 'transparent' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1e2330',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        titleColor: '#fff',
+        bodyColor: '#9ca3af',
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}件完了` }
+      }
+    }
+  }
+});
+
+// Chart4: コーチャーチェック済状況
+new Chart(document.getElementById('chart4'), {
+  type: 'bar',
+  data: {
+    labels: members.map(m => m.name),
+    datasets: [
+      { label: 'チェック済', data: members.map(m => m.checked),            backgroundColor: '#4ade80' },
+      { label: '未チェック', data: members.map(m => m.done - m.checked),   backgroundColor: '#f87171' },
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    indexAxis: 'y',
+    scales: {
+      x: { stacked: true, max: 14, ticks: { color: '#6b7280', stepSize: 2, font: { size: 13 } }, grid: { color: 'rgba(255,255,255,0.05)' }, border: { color: 'transparent' } },
+      y: { stacked: true, ticks: { color: '#e8eaf0', font: { size: 14, family: 'DM Sans' } }, grid: { display: false }, border: { color: 'transparent' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1e2330',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        titleColor: '#fff',
+        bodyColor: '#9ca3af',
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}件`,
+          afterBody: items => {
+            const m = members[items[0].dataIndex];
+            const pct = m.done > 0 ? Math.round(m.checked / m.done * 100) : 0;
+            return [`確認者: ${m.checkers}`, `チェック率: ${pct}%`];
+          }
+        }
+      }
+    }
+  }
+});
+
+const catLabels = ["準備\n(5件)","基本業務\n(10件)","運転業務\n(6件)","商談スキル\n(8件)","実践\n(2件)"];
+new Chart(document.getElementById('chart3'), {
+  type: 'bar',
+  data: {
+    labels: ["準備(5)","基本業務(10)","運転業務(6)","商談スキル(8)","実践(2)"],
+    datasets: [
+      { label: '完了',   data: cats.map(c => shortNames.reduce((s,n) => s+catData[c][n][0],0)), backgroundColor: '#4ade80' },
+      { label: '対応中', data: cats.map(c => shortNames.reduce((s,n) => s+catData[c][n][1],0)), backgroundColor: '#fbbf24' },
+      { label: '未着手', data: cats.map(c => shortNames.reduce((s,n) => s+catData[c][n][2],0)), backgroundColor: '#f87171' },
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      x: { stacked: true, ticks: { color: '#e8eaf0', font: { size: 13 }, autoSkip: false }, grid: { display: false }, border: { color: 'transparent' } },
+      y: { stacked: true, ticks: { color: '#6b7280', font: { size: 13 } }, grid: { color: 'rgba(255,255,255,0.05)' }, border: { color: 'transparent' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1e2330',
+        borderColor: 'rgba(255,255,255,0.1)',
+        borderWidth: 1,
+        titleColor: '#fff',
+        bodyColor: '#9ca3af',
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}件（全員合計）` }
+      }
+    }
+  }
+});
+</script>
+</body>
+</html>
