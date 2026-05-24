@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2026新卒 OJT進捗ダッシュボード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #f0faf6;
+    --surface:  #ffffff;
+    --surface2: #e6f7f1;
+    --border:   rgba(16,185,129,0.18);
+    --text:     #000d08;
+    --muted:    #1a5c40;
+    --done:     #059669;
+    --doing:    #0284c7;
+    --todo:     #ea580c;
+    --accent:   #10b981;
+    --cat1: #10b981;
+    --cat2: #0ea5e9;
+    --cat3: #6366f1;
+    --cat4: #ec4899;
+    --cat5: #f59e0b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 32px 24px 64px;
+  }
+
+  .page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-title {
+    font-size: 26px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #000d08;
+  }
+
+  .page-subtitle {
+    font-size: 16px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .updated {
+    font-size: 15px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 32px;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(16,185,129,0.08);
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .kpi-card.k-total::before { background: var(--accent); }
+  .kpi-card.k-done::before  { background: var(--done); }
+  .kpi-card.k-avg::before   { background: var(--doing); }
+  .kpi-card.k-top::before   { background: var(--cat1); }
+
+  .kpi-label {
+    font-size: 15px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-size: 36px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    color: #000d08;
+    line-height: 1;
+  }
+
+  .kpi-sub {
+    font-size: 15px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    box-shadow: 0 2px 12px rgba(16,185,129,0.07);
+  }
+
+  .chart-card.full { grid-column: 1 / -1; }
+
+  .card-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #000d08;
+    margin-bottom: 4px;
+  }
+
+  .card-desc {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+
+  .legend-row {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .leg-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .leg-sq {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+  }
+
+  .member-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .member-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-shadow: 0 1px 8px rgba(16,185,129,0.07);
+    cursor: default;
+  }
+
+  .member-card:hover { border-color: rgba(16,185,129,0.5); box-shadow: 0 4px 16px rgba(16,185,129,0.12); }
+
+  .member-name {
+    font-size: 15px;
+    font-weight: 500;
+    color: #000d08;
+    margin-bottom: 2px;
+  }
+
+  .member-store {
+    font-size: 14px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .pct-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  .pct-value {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: #000d08;
+  }
+
+  .pct-label {
+    font-size: 14px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .prog-bar {
+    height: 5px;
+    background: var(--surface2);
+    border-radius: 99px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 10px;
+  }
+
+  .prog-done  { background: var(--done); }
+  .prog-doing { background: var(--doing); }
+  .prog-todo  { background: var(--todo); }
+
+  .mini-counts {
+    display: flex;
+    gap: 10px;
+    font-size: 14px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .c-done  { color: var(--done); }
+  .c-doing { color: var(--doing); }
+  .c-todo  { color: var(--todo); }
+
+  .check-divider {
+    border-top: 1px solid var(--border);
+    margin: 10px 0 8px;
+  }
+
+  .check-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+
+  .check-label {
+    font-size: 14px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .check-val {
+    font-size: 14px;
+    font-family: 'DM Mono', monospace;
+    font-weight: 500;
+  }
+
+  .check-warn {
+    font-size: 14px;
+    color: var(--todo);
+  }
+
+  .check-ok {
+    font-size: 14px;
+    color: var(--done);
+  }
+
+  .footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <div class="page-title">2026新卒 OJT進捗ダッシュボード</div>
+    <div class="page-subtitle">バイク王 買取部門 ／ 8名</div>
+  </div>
+  <div class="updated">更新: 2026年5月24日</div>
+</div>
+
+<!-- KPI -->
+<div class="kpi-row">
+  <div class="kpi-card k-total">
+    <div class="kpi-label">対象タスク数</div>
+    <div class="kpi-value">31</div>
+    <div class="kpi-sub">全員共通タスク</div>
+  </div>
+  <div class="kpi-card k-done">
+    <div class="kpi-label">平均完了率</div>
+    <div class="kpi-value" id="kpiAvgDone">—</div>
+    <div class="kpi-sub">全メンバー平均</div>
+  </div>
+  <div class="kpi-card k-avg">
+    <div class="kpi-label">平均対応中率</div>
+    <div class="kpi-value" id="kpiAvgDoing">—</div>
+    <div class="kpi-sub">全メンバー平均</div>
+  </div>
+  <div class="kpi-card k-top">
+    <div class="kpi-label">最高完了率</div>
+    <div class="kpi-value" id="kpiTop">—</div>
+    <div class="kpi-sub" id="kpiTopName">—</div>
+  </div>
+</div>
+
+<!-- メンバーカード -->
+<div class="member-grid" id="memberGrid"></div>
+
+<!-- チャート群 -->
+<div class="grid-2">
+
+  <div class="chart-card full">
+    <div class="card-title">個人別 進捗内訳（完了率順）</div>
+    <div class="card-desc">全31タスクに対する完了・対応中・未着手の内訳</div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-sq" style="background:var(--done)"></div>完了</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--doing)"></div>対応中</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--todo)"></div>未着手</div>
+    </div>
+    <div class="chart-wrap" style="height:280px;">
+      <canvas id="chart1"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="card-title">業務カテゴリ別 完了件数</div>
+    <div class="card-desc">カテゴリ別の進捗を個人ごとに比較</div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-sq" style="background:var(--cat1)"></div>準備(5)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--cat2)"></div>基本業務(10)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--cat3)"></div>運転業務(6)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--cat4)"></div>商談スキル(8)</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--cat5)"></div>実践(2)</div>
+    </div>
+    <div class="chart-wrap" style="height:280px;">
+      <canvas id="chart2"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="card-title">カテゴリ別 全員合計進捗</div>
+    <div class="card-desc">カテゴリごとの課題構造を把握（全員合計）</div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-sq" style="background:var(--done)"></div>完了</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--doing)"></div>対応中</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--todo)"></div>未着手</div>
+    </div>
+    <div class="chart-wrap" style="height:280px;">
+      <canvas id="chart3"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card full">
+    <div class="card-title">コーチャーチェック済状況</div>
+    <div class="card-desc">完了タスクのうちコーチャー確認済件数</div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-sq" style="background:var(--done)"></div>チェック済</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--todo)"></div>未チェック</div>
+    </div>
+    <div class="chart-wrap" style="height:240px;">
+      <canvas id="chart4"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card full">
+    <div class="card-title">個人別 日報チェック状況</div>
+    <div class="card-desc">業務日報のコーチャーチェック済・未チェック件数（日報数順）</div>
+    <div class="legend-row">
+      <div class="leg-item"><div class="leg-sq" style="background:var(--done)"></div>チェック済</div>
+      <div class="leg-item"><div class="leg-sq" style="background:var(--todo)"></div>未チェック</div>
+    </div>
+    <div class="chart-wrap" style="height:240px;">
+      <canvas id="chart5"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== AI日報評価セクション ===== -->
+<div style="margin-top:40px; padding-top:32px; border-top:2px solid var(--border);">
+  <div style="display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:24px;">
+    <div>
+      <div style="font-size:28px; font-weight:600; letter-spacing:-0.02em;">AI 日報テキスト評価</div>
+      <div style="font-size:16px; color:var(--muted); margin-top:6px; font-family:'DM Mono',monospace;">振り返り・反省・翌日目標の記述を AI が分析（全期間の日報を一括評価）</div>
+    </div>
+  </div>
+
+  <!-- 日報の目的 -->
+  <div style="background:var(--surface2); border-left:3px solid var(--accent); border-radius:0 8px 8px 0; padding:16px 20px; margin-bottom:24px; max-width:860px;">
+    <div style="font-size:12px; font-weight:600; color:var(--accent); text-transform:uppercase; letter-spacing:0.08em; margin-bottom:8px;">日報の目的</div>
+    <p style="font-size:15px; color:#000d08; line-height:1.85; margin:0;">
+      日報の本質は「記録」ではなく、<strong>自身の思考を言語化するトレーニング</strong>にあります。
+      その日に経験したこと・感じたことを具体的な言葉に落とし込む作業を繰り返すことで、
+      「何が起きたか」→「なぜそうなったか」→「次にどう動くか」というロジックを体感として身につけることが目的です。
+      漠然とした気づきを言語化できるほど、翌日の行動の解像度は上がります。
+      <span style="color:var(--muted);">——この評価では、その言語化の質と深さを5つの軸で読み取ります。</span>
+    </p>
+  </div>
+
+  <!-- 評価軸の説明 -->
+  <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px;">
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:13px;">
+      <span style="font-weight:600; color:#059669;">📝 記述量</span><span style="color:var(--muted); margin-left:6px;">文字数・情報密度</span>
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:13px;">
+      <span style="font-weight:600; color:#0284c7;">🎯 具体性</span><span style="color:var(--muted); margin-left:6px;">数値・固有名詞・行動の具体さ</span>
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:13px;">
+      <span style="font-weight:600; color:#6366f1;">🔗 論理性</span><span style="color:var(--muted); margin-left:6px;">原因→課題→対策の構造</span>
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:13px;">
+      <span style="font-weight:600; color:#ec4899;">📈 成長志向</span><span style="color:var(--muted); margin-left:6px;">課題認識と改善意欲</span>
+    </div>
+    <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:10px 14px; font-size:13px;">
+      <span style="font-weight:600; color:#f59e0b;">🔄 翌日との連動</span><span style="color:var(--muted); margin-left:6px;">振り返りと翌日目標の一貫性</span>
+    </div>
+  </div>
+
+  <div id="analysisGrid" style="display:grid; grid-template-columns:repeat(2,1fr); gap:16px;"></div>
+</div>
+
+<div class="footer">
+  <span>データソース: Notion CSVエクスポート（2026年5月24日時点）</span>
+  <span>バイク王 買取部門 OJT管理システム</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// メンバーデータ（完了率降順）
+const members = [
+  {"name":"黒坂 悠貴",  "store":"八王子堀之内店","group":"関東第五G","done":22,"doing":7, "todo":2, "total":31,"checked":18,"checkers":"望月友哉・末田真也",
+   "cats":{"準備":[5,0,0],"基本業務":[6,3,1],"運転業務":[3,2,1],"商談スキル":[8,0,0],"実践":[0,2,0]}},
+  {"name":"鶴田 京士朗","store":"姫路店",        "group":"近畿第二G","done":17,"doing":10,"todo":4, "total":31,"checked":17,"checkers":"玉木学",
+   "cats":{"準備":[5,0,0],"基本業務":[6,3,1],"運転業務":[2,1,3],"商談スキル":[3,5,0],"実践":[1,1,0]}},
+  {"name":"児島 翔太",  "store":"寝屋川店",      "group":"近畿第二G","done":16,"doing":11,"todo":4, "total":31,"checked":16,"checkers":"辻本泰樹",
+   "cats":{"準備":[5,0,0],"基本業務":[5,3,2],"運転業務":[4,1,1],"商談スキル":[0,7,1],"実践":[2,0,0]}},
+  {"name":"忽那 航太",  "store":"草加店",        "group":"関東第三G","done":15,"doing":11,"todo":5, "total":31,"checked":15,"checkers":"末田真也・𠮷田智也",
+   "cats":{"準備":[5,0,0],"基本業務":[6,1,3],"運転業務":[3,2,1],"商談スキル":[1,7,0],"実践":[0,1,1]}},
+  {"name":"西川 智裕",  "store":"相模大野店",    "group":"関東第四G","done":14,"doing":2, "todo":15,"total":31,"checked":14,"checkers":"小林幸太・新井亮",
+   "cats":{"準備":[5,0,0],"基本業務":[7,0,3],"運転業務":[2,2,2],"商談スキル":[0,0,8],"実践":[0,0,2]}},
+  {"name":"松本 愛哉",  "store":"伊丹店",        "group":"近畿第二G","done":14,"doing":4, "todo":13,"total":31,"checked":14,"checkers":"t.nakatani",
+   "cats":{"準備":[4,1,0],"基本業務":[3,3,4],"運転業務":[0,0,6],"商談スキル":[7,0,1],"実践":[0,0,2]}},
+  {"name":"難波 杏介",  "store":"世田谷本店",    "group":"関東第五G","done":11,"doing":15,"todo":5, "total":31,"checked":11,"checkers":"福留悠太",
+   "cats":{"準備":[5,0,0],"基本業務":[3,5,2],"運転業務":[3,2,1],"商談スキル":[0,7,1],"実践":[0,1,1]}},
+  {"name":"山田 泰大",  "store":"福岡店",        "group":"九州G",    "done":11,"doing":14,"todo":6, "total":31,"checked":3, "checkers":"岡﨑遼",
+   "cats":{"準備":[4,1,0],"基本業務":[6,3,1],"運転業務":[1,3,2],"商談スキル":[0,7,1],"実践":[0,0,2]}},
+];
+
+const shortNames = members.map(m => m.name.replace(' ','').slice(0,3));
+
+// KPI
+const avgDone  = Math.round(members.reduce((s,m) => s + m.done/m.total*100, 0) / members.length);
+const avgDoing = Math.round(members.reduce((s,m) => s + m.doing/m.total*100, 0) / members.length);
+const topMember = members[0]; // 完了率降順にソート済み
+document.getElementById('kpiAvgDone').textContent  = avgDone + '%';
+document.getElementById('kpiAvgDoing').textContent = avgDoing + '%';
+document.getElementById('kpiTop').textContent      = Math.round(topMember.done/topMember.total*100) + '%';
+document.getElementById('kpiTopName').textContent  = topMember.name;
+
+// メンバーカード
+const grid = document.getElementById('memberGrid');
+members.forEach(m => {
+  const pct       = Math.round(m.done / m.total * 100);
+  const donePct   = (m.done  / m.total * 100).toFixed(1);
+  const doingPct  = (m.doing / m.total * 100).toFixed(1);
+  const todoPct   = (m.todo  / m.total * 100).toFixed(1);
+  const uncheckCount = m.done - m.checked;
+  const checkPct     = m.done > 0 ? Math.round(m.checked / m.done * 100) : 0;
+  const checkColor   = checkPct === 100 ? 'var(--done)' : uncheckCount > 0 ? 'var(--todo)' : 'var(--doing)';
+  grid.innerHTML += `
+    <div class="member-card">
+      <div class="member-name">${m.name}</div>
+      <div class="member-store">${m.group} ／ ${m.store}</div>
+      <div class="pct-row">
+        <div class="pct-value">${pct}<span style="font-size:16px;color:var(--muted);font-weight:400;">%</span></div>
+        <div class="pct-label">完了率</div>
+      </div>
+      <div class="prog-bar">
+        <div class="prog-done"  style="width:${donePct}%"></div>
+        <div class="prog-doing" style="width:${doingPct}%"></div>
+        <div class="prog-todo"  style="width:${todoPct}%"></div>
+      </div>
+      <div class="mini-counts">
+        <span class="c-done">完${m.done}</span>
+        <span class="c-doing">中${m.doing}</span>
+        <span class="c-todo">未${m.todo}</span>
+      </div>
+      <div class="check-divider"></div>
+      <div class="check-row">
+        <div class="check-label">コーチャーチェック</div>
+        <div class="check-val" style="color:${checkColor}">${m.checked} / ${m.done}件</div>
+      </div>
+      ${uncheckCount > 0
+        ? `<div class="check-warn">未チェック ${uncheckCount}件あり</div>`
+        : `<div class="check-ok">全完了タスクチェック済</div>`}
+    </div>`;
+});
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } }
+};
+
+// Chart1: 個人別 進捗内訳 横棒積み上げ（完了率順）
+new Chart(document.getElementById('chart1'), {
+  type: 'bar',
+  data: {
+    labels: members.map(m => m.name),
+    datasets: [
+      { label: '完了',   data: members.map(m => m.done),  backgroundColor: '#059669' },
+      { label: '対応中', data: members.map(m => m.doing), backgroundColor: '#0284c7' },
+      { label: '未着手', data: members.map(m => m.todo),  backgroundColor: '#ea580c' },
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    indexAxis: 'y',
+    scales: {
+      x: { stacked: true, max: 31, ticks: { color: '#1a5c40', stepSize: 5 }, grid: { color: 'rgba(16,185,129,0.08)' }, border: { color: 'transparent' } },
+      y: { stacked: true, ticks: { color: '#000d08', font: { size: 14, family: 'DM Sans' } }, grid: { display: false }, border: { color: 'transparent' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#ffffff', borderColor: 'rgba(16,185,129,0.25)', borderWidth: 1,
+        titleColor: '#000d08', bodyColor: '#9ca3af',
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}件`,
+          afterBody: items => {
+            const m = members[items[0].dataIndex];
+            return [`完了率: ${Math.round(m.done/31*100)}%`];
+          }
+        }
+      }
+    }
+  }
+});
+
+// Chart2: カテゴリ別完了件数（グループ棒グラフ）
+const cats     = ['準備','基本業務','運転業務','商談スキル','実践'];
+const catColors = ['#10b981','#0ea5e9','#6366f1','#ec4899','#f59e0b'];
+new Chart(document.getElementById('chart2'), {
+  type: 'bar',
+  data: {
+    labels: shortNames,
+    datasets: cats.map((cat, i) => ({
+      label: cat,
+      data: members.map(m => m.cats[cat][0]),
+      backgroundColor: catColors[i],
+      borderRadius: 3,
+      borderSkipped: false,
+    }))
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      x: { ticks: { color: '#000d08', font: { size: 13 } }, grid: { display: false }, border: { color: 'transparent' } },
+      y: { max: 10, ticks: { stepSize: 2, color: '#1a5c40', font: { size: 13 } }, grid: { color: 'rgba(16,185,129,0.08)' }, border: { color: 'transparent' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#ffffff', borderColor: 'rgba(16,185,129,0.25)', borderWidth: 1,
+        titleColor: '#000d08', bodyColor: '#9ca3af',
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}件完了` }
+      }
+    }
+  }
+});
+
+// Chart3: カテゴリ別 全員合計（積み上げ棒グラフ）
+const catLabels = ['準備(5)','基本業務(10)','運転業務(6)','商談スキル(8)','実践(2)'];
+new Chart(document.getElementById('chart3'), {
+  type: 'bar',
+  data: {
+    labels: catLabels,
+    datasets: [
+      { label: '完了',   data: cats.map(c => members.reduce((s,m) => s+m.cats[c][0], 0)), backgroundColor: '#059669' },
+      { label: '対応中', data: cats.map(c => members.reduce((s,m) => s+m.cats[c][1], 0)), backgroundColor: '#0284c7' },
+      { label: '未着手', data: cats.map(c => members.reduce((s,m) => s+m.cats[c][2], 0)), backgroundColor: '#ea580c' },
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      x: { stacked: true, ticks: { color: '#000d08', font: { size: 13 }, autoSkip: false }, grid: { display: false }, border: { color: 'transparent' } },
+      y: { stacked: true, ticks: { color: '#1a5c40', font: { size: 13 } }, grid: { color: 'rgba(16,185,129,0.08)' }, border: { color: 'transparent' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#ffffff', borderColor: 'rgba(16,185,129,0.25)', borderWidth: 1,
+        titleColor: '#000d08', bodyColor: '#9ca3af',
+        callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}件（全員合計）` }
+      }
+    }
+  }
+});
+
+// Chart4: コーチャーチェック済状況
+new Chart(document.getElementById('chart4'), {
+  type: 'bar',
+  data: {
+    labels: members.map(m => m.name),
+    datasets: [
+      { label: 'チェック済', data: members.map(m => m.checked),          backgroundColor: '#059669' },
+      { label: '未チェック', data: members.map(m => m.done - m.checked), backgroundColor: '#ea580c' },
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    indexAxis: 'y',
+    scales: {
+      x: { stacked: true, max: 25, ticks: { color: '#1a5c40', stepSize: 5, font: { size: 13 } }, grid: { color: 'rgba(16,185,129,0.08)' }, border: { color: 'transparent' } },
+      y: { stacked: true, ticks: { color: '#000d08', font: { size: 14, family: 'DM Sans' } }, grid: { display: false }, border: { color: 'transparent' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#ffffff', borderColor: 'rgba(16,185,129,0.25)', borderWidth: 1,
+        titleColor: '#000d08', bodyColor: '#9ca3af',
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}件`,
+          afterBody: items => {
+            const m = members[items[0].dataIndex];
+            const pct = m.done > 0 ? Math.round(m.checked / m.done * 100) : 0;
+            return [`確認者: ${m.checkers}`, `チェック率: ${pct}%`];
+          }
+        }
+      }
+    }
+  }
+});
+
+// Chart5: 日報チェック状況（日報数順）
+const nihoMembers = [
+  {"name":"黒坂 悠貴",  "total":28,"checked":25,"unchecked":3},
+  {"name":"山田 泰大",  "total":28,"checked":22,"unchecked":6},
+  {"name":"児島 翔太",  "total":26,"checked":26,"unchecked":0},
+  {"name":"鶴田 京士朗","total":25,"checked":24,"unchecked":1},
+  {"name":"松本 愛哉",  "total":24,"checked":24,"unchecked":0},
+  {"name":"西川 智裕",  "total":23,"checked":23,"unchecked":0},
+  {"name":"難波 杏介",  "total":20,"checked":19,"unchecked":1},
+  {"name":"忽那 航太",  "total":17,"checked":14,"unchecked":3},
+];
+
+new Chart(document.getElementById('chart5'), {
+  type: 'bar',
+  data: {
+    labels: nihoMembers.map(m => m.name),
+    datasets: [
+      { label: 'チェック済', data: nihoMembers.map(m => m.checked),   backgroundColor: '#059669' },
+      { label: '未チェック', data: nihoMembers.map(m => m.unchecked), backgroundColor: '#ea580c' },
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    indexAxis: 'y',
+    scales: {
+      x: { stacked: true, max: 30, ticks: { color: '#1a5c40', stepSize: 5, font: { size: 13 } }, grid: { color: 'rgba(16,185,129,0.08)' }, border: { color: 'transparent' } },
+      y: { stacked: true, ticks: { color: '#000d08', font: { size: 14, family: 'DM Sans' } }, grid: { display: false }, border: { color: 'transparent' } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#ffffff', borderColor: 'rgba(16,185,129,0.25)', borderWidth: 1,
+        titleColor: '#000d08', bodyColor: '#9ca3af',
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.x}件`,
+          afterBody: items => {
+            const m = nihoMembers[items[0].dataIndex];
+            const pct = Math.round(m.checked / m.total * 100);
+            return [`合計: ${m.total}件`, `チェック率: ${pct}%`];
+          }
+        }
+      }
+    }
+  }
+});
+
+// ===== AI評価結果（事前分析済み・静的データ） =====
+const aiResults = [
+  {
+    name: "難波 杏介", meta: "関東第五G・世田谷本店", entries: 20,
+    scores: { volume: 5, specificity: 5, logic: 4, growth: 4, continuity: 4 },
+    strengths: "全8名中最多の平均文字数（302字）で、商談の実数値（リユース5,000円・7.5万円・33万→25万など）を具体的に記録できる唯一の人物。状態説明の理由づけや顧客心理への言及も充実している。",
+    improvements: "翌日目標が「安全運転」のみで終わる日が後半に多く、商談技術の改善策が目標に反映しきれていない日が散見される。成約できなかった商談の原因分析はあるが、次回への具体的アクションへの落とし込みをさらに深めると良い。",
+    trend: "序盤からB-Pro操作・書類・ロープワークを具体的に記述し、中盤以降は商談数値・交渉結果まで書けるようになり、記述の質・量ともに全期間を通じて高水準を維持している。"
+  },
+  {
+    name: "児島 翔太", meta: "近畿第二G・寝屋川店", entries: 26,
+    scores: { volume: 4, specificity: 4, logic: 5, growth: 4, continuity: 5 },
+    strengths: "初日から「なぜその質問をするのか」と目的意識を持って観察する姿勢が一貫しており、問題→原因→対策の論理構造が最も安定している。翌日目標も「巻き込み確認をもっと念入りに」など前日の反省を直接受けた具体的アクションが多い。",
+    improvements: "振り返りと反省の内容が入れ替わって記入されている日があり、記述の整理に慣れが必要。専門知識（車種名・金額）の記述は増えつつあるが、他の記述量の多いメンバーと比べると数値引用がまだ少ない。",
+    trend: "序盤はトラック・ロープワークの基礎習得を丁寧に記録し、中盤から商談への主体的参加・7プロセスへの考察へと記述内容が着実にステップアップしている。"
+  },
+  {
+    name: "鶴田 京士朗", meta: "近畿第二G・姫路店", entries: 25,
+    scores: { volume: 4, specificity: 5, logic: 5, growth: 4, continuity: 4 },
+    strengths: "ABS有無・年式による中古相場変動・外輪差・オーバーハングなど専門用語を根拠として正確に使える。「お客様のバイクを下げるのではなく他を上げる」「商売上の線引き」など概念的洞察も深く、全8名中最も論理的な記述スタイル。",
+    improvements: "後半になるにつれて翌日目標が1〜2行に短縮される傾向があり、前半の詳細な目標設定と比べると連動の質が落ちている。多くの気づきをもっと翌日の行動計画に明示的につなげると良い。",
+    trend: "入社初日から高密度の記述を維持しており、商談技術の習得とともに「ワード選び」「テンポ感」「嗅覚」など抽象レイヤーでの考察へと思考が深化している。"
+  },
+  {
+    name: "黒坂 悠貴", meta: "関東第五G・八王子堀之内店", entries: 28,
+    scores: { volume: 3, specificity: 3, logic: 3, growth: 5, continuity: 3 },
+    strengths: "全メンバー中最も成長変化が顕著で、初期の「バイクの知識を増やす」という一文から、後半は「写真査定33万→25万で買い取れた理由」「前提確認で聞き出せた内容」など具体的成果を記述できるように急成長している。",
+    improvements: "序盤〜中盤は振り返りが箇条書き・短文にとどまり、情報密度が低い。翌日目標も「同行」のみで終わる日が多く、課題の明確化→具体的翌日アクションへの落とし込みをより意識すると記述力がさらに伸びる。",
+    trend: "前半と後半で記述の質が大きく変化しており、5月中旬以降に商談結果・切り返しトーク・確約タイミングへの具体的言及が急増。成長の軌跡が最もダイナミックに見える。"
+  },
+  {
+    name: "山田 泰大", meta: "九州G・福岡店", entries: 28,
+    scores: { volume: 3, specificity: 3, logic: 3, growth: 4, continuity: 3 },
+    strengths: "課題認識が誠実で、「過信して流れをつかめなかった」「ヒアリングで歳の近いお客様とはラフに話せた一方、年齢層が高いと難しかった」など自己評価が正直で具体的。商談件数も多く、失敗から学ぶ姿勢が記述に現れている。",
+    improvements: "振り返りが「同行」「先輩に同行した」のみで終わる日が複数あり、その日に得た具体的な気づきが書かれていない。翌日目標も「同行」「同行で査定を行う」と繰り返しが多く、前日の反省との連動が薄い日が目立つ。",
+    trend: "中盤からリユース交渉・クロージング・状態報告など実践フェーズに入ったことで記述内容が充実。5月後半は「ヒアリングとマルチタスクの両立」など複合的な課題認識ができるようになっている。"
+  },
+  {
+    name: "西川 智裕", meta: "関東第四G・相模大野店", entries: 23,
+    scores: { volume: 3, specificity: 3, logic: 4, growth: 3, continuity: 4 },
+    strengths: "「傷から連想して別の査定ポイントを見つける」「なぜその質問をしているか考えながら同行する」など、行動の意図を問い直す視点が序盤から見られる。翌日目標が前日の反省を引き継いで設定される日が多く、連動性が安定している。",
+    improvements: "記述量が全体的に中程度（平均132字）で、感想・気づきが「感じた」「思った」止まりで終わることが多い。商談での具体的な出来事（車種名・金額・やり取り内容）の記述が少なく、事実ベースの情報密度を上げることが課題。",
+    trend: "序盤はアルバイト接客からの意識転換、中盤は運転・洗車を通じた車体知識習得、後半は商談での自信不足という課題認識へと段階的に発展。ただし後半の記述量がやや減少傾向にある。"
+  },
+  {
+    name: "松本 愛哉", meta: "近畿第二G・伊丹店", entries: 24,
+    scores: { volume: 2, specificity: 2, logic: 2, growth: 3, continuity: 2 },
+    strengths: "「営業の楽しさと難しさを1日で知れた」「人によって商談スタイルが違い自分のスタイルを早く確立したい」など、素直な気づきが自然な言葉で書かれている。OJT後半に体調不良・店舗手伝いが続いた中でも継続して記録している。",
+    improvements: "全8名中最も記述量が少なく（平均120字）、「覚える」「練習する」「覚えていきたい」という抽象的な表現が繰り返される。具体的に何をどう練習するかの記述がほぼなく、振り返りと翌日目標が形式的になっている日が多い。",
+    trend: "4月中旬から5月中旬まで同行・積み込み・書類と順を追って学んでいるが、記述の質・量に大きな変化が見られにくい。後半は体調不良・店舗業務が続き、商談実践への記述が少ない点が惜しまれる。"
+  },
+  {
+    name: "忽那 航太", meta: "関東第三G・草加店", entries: 17,
+    scores: { volume: 2, specificity: 2, logic: 3, growth: 3, continuity: 3 },
+    strengths: "「ただ決められた質問をするのではなく理由や背景を含めて情報収集する」「意味合いを持って行動する」など、業務の本質を捉えた観察ができている。序盤から金額交渉の難しさを構造的に理解しようとする姿勢が見られる。",
+    improvements: "日報件数が全8名中最も少なく（17件）、振り返りが「同行」「同行・交通安全」などタイトルのみで終わる日が複数ある。反省欄も「〜と感じた」で終わることが多く、対策・アクションへの具体化が全体的に不足している。",
+    trend: "中盤から査定写真・プライサー報告・導入トークなど実務スキルへの言及が増えているが、記述の密度は低く横ばい。5月22日の「AI商談」への言及など、新しい取り組みへの感度は高い。"
+  }
+];
+
+// ===== AI評価カードをレンダリング =====
+(function renderAnalysis() {
+  const grid = document.getElementById('analysisGrid');
+  const axisLabels = [
+    { key:'volume',      label:'記述量',   color:'#059669', icon:'📝' },
+    { key:'specificity', label:'具体性',   color:'#0284c7', icon:'🎯' },
+    { key:'logic',       label:'論理性',   color:'#6366f1', icon:'🔗' },
+    { key:'growth',      label:'成長志向', color:'#ec4899', icon:'📈' },
+    { key:'continuity',  label:'翌日連動', color:'#f59e0b', icon:'🔄' },
+  ];
+
+  aiResults.forEach(r => {
+
+    const bars = axisLabels.map(ax => {
+      const val = r.scores[ax.key];
+      const pct = val / 5 * 100;
+        return `
+        <div style="margin-bottom:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <span style="font-size:14px; color:#000d08;">${ax.icon} ${ax.label}</span>
+
+          </div>
+          <div style="height:4px; background:#e6f7f1; border-radius:99px; overflow:hidden;">
+            <div style="height:100%; width:${pct}%; background:${ax.color}; border-radius:99px;"></div>
+          </div>
+        </div>`;
+    }).join('');
+
+    grid.innerHTML += `
+      <div style="background:#fff; border:1px solid rgba(16,185,129,0.18); border-radius:10px; padding:20px 22px; box-shadow:0 2px 12px rgba(16,185,129,0.07);">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px;">
+          <div>
+            <div style="font-size:18px; font-weight:600; color:#000d08;">${r.name}</div>
+            <div style="font-size:14px; color:#1a5c40; margin-top:2px;">${r.meta}</div>
+            <div style="font-size:13px; color:#1a5c40; font-family:'DM Mono',monospace; margin-top:2px;">日報 ${r.entries}件</div>
+          </div>
+          <div style="text-align:right;">
+          </div>
+        </div>
+        ${bars}
+        <div style="border-top:1px solid rgba(16,185,129,0.15); margin:14px 0 12px;"></div>
+        <div style="margin-bottom:10px;">
+          <span style="font-size:13px; font-weight:600; color:#059669; text-transform:uppercase; letter-spacing:0.06em;">強み</span>
+          <div style="font-size:15px; color:#000d08; margin-top:4px; line-height:1.7;">${r.strengths}</div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <span style="font-size:13px; font-weight:600; color:#ea580c; text-transform:uppercase; letter-spacing:0.06em;">改善点</span>
+          <div style="font-size:15px; color:#000d08; margin-top:4px; line-height:1.7;">${r.improvements}</div>
+        </div>
+        <div>
+          <span style="font-size:13px; font-weight:600; color:#6366f1; text-transform:uppercase; letter-spacing:0.06em;">成長トレンド</span>
+          <div style="font-size:15px; color:#000d08; margin-top:4px; line-height:1.7;">${r.trend}</div>
+        </div>
+      </div>`;
+  });
+})();
+</script>
+</body>
+</html>
